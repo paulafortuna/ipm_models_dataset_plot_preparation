@@ -1,0 +1,25 @@
+original_label,sn_twitter,sn,dataset,concept,train_total_N,train_total_positive,train_perc_positive,test_tot_N
+ami,twitter,twitter,ami,sexism,2800,1249,0.4460714286,1200
+davidson_hate,twitter,twitter,davidson,hate speech,17348,975,0.05620244409,7435
+davidson_offensive,twitter,twitter,davidson,offense,17348,13517,0.7791676274,7435
+davidson_toxicity,twitter,twitter,davidson,toxicity,17348,14492,0.8353700715,7435
+founta_abusive,twitter,twitter,founta,abusive,64366,14463,0.2246993754,27587
+founta_hateful,twitter,twitter,founta,hate speech,64366,2885,0.04482180033,27587
+founta_toxicity,twitter,twitter,founta,toxicity,64366,17348,0.2695211758,27587
+hateval_aggression,twitter,twitter,hateval,aggressive hate speech,9000,1559,0.1732222222,1000
+hateval_hate,twitter,twitter,hateval,hate speech,9000,3783,0.4203333333,1000
+one,twitter,twitter,offenseval,toxicity,13240,4400,0.332326284,319
+stormfront_post,other,stormfront,stormfront,hate speech,3501,705,0.2013710368,1500
+stormfront_sentence,other,stormfront,stormfront,hate speech,7661,705,0.09202453988,3284
+toxicity_identityhate,other,wikipedia_talks,toxkaggle,hate speech,111699,977,0.008746721099,47872
+toxicity_insult,other,wikipedia_talks,toxkaggle,insult,111699,5593,0.05007206868,47872
+toxicity_obscene,other,wikipedia_talks,toxkaggle,obscene,111699,6008,0.05378741081,47872
+toxicity_severetoxic,other,wikipedia_talks,toxkaggle,severe toxicity,111699,1107,0.00991056321,47872
+toxicity_threat,other,wikipedia_talks,toxkaggle,threat,111699,336,0.003008084226,47872
+toxicity_toxic,other,wikipedia_talks,toxkaggle,toxicity,111699,10856,0.09718976893,47872
+trac_aggr,other,facebook,trac,aggression,12000,6948,0.579,3000
+trac_covert,other,facebook,trac,covert aggression,12000,4240,0.3533333333,3000
+trac_overt,other,facebook,trac,overt aggression,12000,2708,0.2256666667,3000
+zeerak_hate,twitter,twitter,waseem,hate speech,11835,3784,0.3197296155,5073
+zeerak_racism,twitter,twitter,waseem,racism,11835,1377,0.1163498099,5073
+zeerak_sexism,twitter,twitter,waseem,sexism,11835,2407,0.2033798057,5073

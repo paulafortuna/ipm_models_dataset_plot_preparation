@@ -1,0 +1,1232 @@
+---
+title: "2020-05-07_generalization_results_analysis"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Generalization Results Analysis
+
+In this script we present the analysis of performance for different abusive speech related datasets.
+
+```{r,echo=FALSE}
+
+library(ggplot2)
+```
+
+
+```{r, echo=FALSE, results="hide"}
+
+# data reading
+
+# dataset_descriptive_features
+dataset_descriptive_features <- read.csv("./data/dataset_descriptive_features.csv")
+dataset_descriptive_features$train_perc_positive <- NULL
+dataset_descriptive_features$train_perc_positive <- dataset_descriptive_features$train_total_positive / dataset_descriptive_features$train_total_N 
+dataset_descriptive_features$total_users <- as.numeric(levels(dataset_descriptive_features$total_users))[dataset_descriptive_features$total_users]
+dataset_descriptive_features$positive_users_N <- as.numeric(levels(dataset_descriptive_features$positive_users_N))[dataset_descriptive_features$positive_users_N]
+
+# dataset_intra_vocabulary_features
+dataset_intra_vocabulary_features <- read.csv("./data/dataset_intra_vocabulary_features.csv")
+
+# datasets_comparison_vocabulary_features
+datasets_comparison_vocabulary_features <- read.csv("./data/datasets_comparison_vocabulary_features.csv")
+
+# results_F1_albert_all_models_vs_all_datasets_final_tacl
+results_albert <- read.csv("./data/results_F1_albert_all_models_vs_all_datasets_final_tacl.csv")
+
+# results_F1_bert_all_models_vs_all_datasets_final
+results_bert <- read.csv("./data/results_F1_bert_all_models_vs_all_datasets_final_tacl.csv")
+
+# results_F1_fasttext_all_models_vs_all_datasets_final
+results_fast <- read.csv("./data/results_F1_fasttext_all_models_vs_all_datasets_final.csv")
+
+# results_svm_cross
+results_svm <- read.csv("./data/SVM_cross_dataset_performance.csv")
+results_svm$precision_macro <- NULL
+results_svm$recall_macro <- NULL
+
+# results_svm_intra
+results_svm_intra <- read.csv("./data/SVM_intra_dataset_performance.csv")
+results_svm_intra$precision_macro <- NULL
+results_svm_intra$recall_macro <- NULL
+
+# merge both svm
+results_svm <- results_svm[as.character(results_svm$dataset_category_train) != as.character(results_svm$dataset_category_test),]
+
+results_svm <- rbind(results_svm,results_svm_intra)
+
+```
+
+
+```{r, echo=FALSE, results="hide"}
+
+# id matching
+
+final_labels_list <- c("trac_covert", 
+                       "trac_overt", 
+                       "trac_aggression", 
+                       "offenseval_offense", 
+                       "hateval_hate", 
+                       "hateval_aggression", 
+                       "ami_sexism", 
+                       "davidson_hate", 
+                       "davidson_offensive", 
+                       "davidson_toxicity",
+                       "stormfront_post",
+                       "stormfront_sentence",
+                       "toxkaggle_toxic",
+                       "toxkaggle_identityhate",
+                       "toxkaggle_severetoxic",
+                       "toxkaggle_insult",
+                       "toxkaggle_obscene",
+                       "toxkaggle_threat",
+                       "waseem_hate",
+                       "waseem_racism",
+                       "waseem_sexism",
+                       "founta_hateful",
+                       "founta_abusive",
+                       "founta_toxicity")
+
+dataset_intra_vocabulary_features_labels <- c("trac_covert", 
+                       "trac_overt", 
+                       "trac_aggr", 
+                       "offenseval", 
+                       "hateval_hate", 
+                       "hateval_aggression", 
+                       "ami", 
+                       "davidson_hate", 
+                       "davidson_offensive", 
+                       "davidson_toxicity",
+                       "stormfront_post",
+                       "stormfront_sentence",
+                       "toxicity_toxic",
+                       "toxicity_identityhate",
+                       "toxicity_severetoxic",
+                       "toxicity_insult",
+                       "toxicity_obscene",
+                       "toxicity_threat",
+                       "zeerak_hate",
+                       "zeerak_racism",
+                       "zeerak_sexism",
+                       "founta_hateful",
+                       "founta_abusive",
+                       "founta_toxicity")
+
+results_fast_labels <- dataset_intra_vocabulary_features_labels
+datasets_comparison_vocabulary_features_labels <- dataset_intra_vocabulary_features_labels
+
+results_albert_labels <- c("trac_covert", 
+                       "trac_overt", 
+                       "trac_aggr", 
+                       "one", 
+                       "hateval_hate", 
+                       "hateval_aggression", 
+                       "ami", 
+                       "davidson_hate", 
+                       "davidson_offensive", 
+                       "davidson_toxicity",
+                       "stormfront_post",
+                       "stormfront_sentence",
+                       "toxicity_toxic",
+                       "toxicity_identityhate",
+                       "toxicity_severetoxic",
+                       "toxicity_insult",
+                       "toxicity_obscene",
+                       "toxicity_threat",
+                       "zeerak_hate",
+                       "zeerak_racism",
+                       "zeerak_sexism",
+                       "founta_hateful",
+                       "founta_abusive",
+                       "founta_toxicity")
+
+results_svm_labels <- c("trac_covert", 
+                       "trac_overt", 
+                       "trac_aggr", 
+                       "offenseval", 
+                       "hateval_hate", 
+                       "hateval_aggression", 
+                       "ami", 
+                       "davidson_hate", 
+                       "davidson_offensive", 
+                       "davidson_toxicity",
+                       "stormfront_post",
+                       "stormfront_sentence",
+                       "toxicity_toxic",
+                       "toxicity_identityhate",
+                       "toxicity_severetoxic",
+                       "toxicity_insult",
+                       "toxicity_obscene",
+                       "toxicity_threat",
+                       "zeerak_hate",
+                       "zeerak_racism",
+                       "zeerak_sexism",
+                       "founta_hateful",
+                       "founta_abusive",
+                       "founta_toxicity")
+
+
+results_bert_labels <- results_albert_labels
+dataset_descriptive_features_labels <- results_albert_labels
+
+df = data.frame(final_labels_list, 
+                dataset_intra_vocabulary_features_labels,
+                datasets_comparison_vocabulary_features_labels, 
+                dataset_descriptive_features_labels,
+                results_albert_labels, 
+                results_bert_labels,
+                results_fast_labels,
+                results_svm_labels)
+df <- data.frame(lapply(df, as.character), stringsAsFactors=FALSE)
+
+# dataset_intra_vocabulary_features
+dataset_intra_vocabulary_features$dataset
+dataset_intra_vocabulary_features$id <- "nothing"
+
+for(i in 1:nrow(dataset_intra_vocabulary_features)) {
+  # get the label we are translating from the row
+  old_label = dataset_intra_vocabulary_features$dataset[i]
+  # get the conversion to new label
+  
+  new_label = df[df$dataset_intra_vocabulary_features_labels == old_label,"final_labels_list"]
+  dataset_intra_vocabulary_features$id[i] <- new_label
+}
+
+# datasets_comparison_vocabulary_features
+datasets_comparison_vocabulary_features$dataset1
+datasets_comparison_vocabulary_features$id_dataset1 <- "nothing"
+datasets_comparison_vocabulary_features$id_dataset2 <- "nothing"
+
+for(i in 1:nrow(datasets_comparison_vocabulary_features)) {
+  # get the label we are translating from the row
+  old_label = datasets_comparison_vocabulary_features$dataset1[i]
+  # get the conversion to new label
+  
+  new_label = df[df$datasets_comparison_vocabulary_features_labels == old_label,"final_labels_list"]
+  datasets_comparison_vocabulary_features$id_dataset1[i] <- new_label
+}
+
+for(i in 1:nrow(datasets_comparison_vocabulary_features)) {
+  # get the label we are translating from the row
+  old_label = datasets_comparison_vocabulary_features$dataset2[i]
+  # get the conversion to new label
+  
+  new_label = df[df$datasets_comparison_vocabulary_features_labels == old_label,"final_labels_list"]
+  datasets_comparison_vocabulary_features$id_dataset2[i] <- new_label
+}
+
+
+# results_albert
+results_albert$dataset
+results_albert$dataset_id <- "nothing"
+
+for(i in 1:nrow(results_albert)) {
+  # get the label we are translating from the row
+  old_label = results_albert$dataset[i]
+  # get the conversion to new label
+  
+  new_label = df[df$results_albert_labels == old_label,"final_labels_list"]
+  results_albert$dataset_id[i] <- new_label
+}
+
+results_albert$model
+results_albert$model_id <- "nothing"
+
+for(i in 1:nrow(results_albert)) {
+  # get the label we are translating from the row
+  old_label = results_albert$model[i]
+  # get the conversion to new label
+  
+  new_label = df[df$results_albert_labels == old_label,"final_labels_list"]
+  results_albert$model_id[i] <- new_label
+}
+
+# results_svm
+results_svm$dataset
+results_svm$dataset_id <- "nothing"
+
+for(i in 1:nrow(results_svm)) {
+  # get the label we are translating from the row
+  old_label = results_svm$dataset_category_test[i]
+  # get the conversion to new label
+  
+  new_label = df[df$results_svm_labels == old_label,"final_labels_list"]
+  results_svm$dataset_id[i] <- new_label
+}
+
+# results_svm
+
+results_svm$model
+results_svm$model_id <- "nothing"
+
+for(i in 1:nrow(results_svm)) {
+  # get the label we are translating from the row
+  old_label = results_svm$dataset_category_train[i]
+  # get the conversion to new label
+  
+  new_label = df[df$results_svm_labels == old_label,"final_labels_list"]
+  results_svm$model_id[i] <- new_label
+}
+
+
+# results_bert
+results_bert$dataset
+results_bert$dataset_id <- "nothing"
+
+for(i in 1:nrow(results_bert)) {
+  # get the label we are translating from the row
+  old_label = results_bert$dataset[i]
+  # get the conversion to new label
+  
+  new_label = df[df$results_bert_labels == old_label,"final_labels_list"]
+  results_bert$dataset_id[i] <- new_label
+}
+
+results_bert$model
+results_bert$model_id <- "nothing"
+
+for(i in 1:nrow(results_bert)) {
+  # get the label we are translating from the row
+  old_label = results_bert$model[i]
+  # get the conversion to new label
+  
+  new_label = df[df$results_bert == old_label,"final_labels_list"]
+  results_bert$model_id[i] <- new_label
+}
+
+
+# results_bert
+results_fast$dataset
+results_fast$dataset_id <- "nothing"
+
+for(i in 1:nrow(results_fast)) {
+  # get the label we are translating from the row
+  old_label = results_fast$dataset[i]
+  # get the conversion to new label
+  
+  new_label = df[df$results_fast_labels == old_label,"final_labels_list"]
+  results_fast$dataset_id[i] <- new_label
+}
+
+results_fast$model
+results_fast$model_id <- "nothing"
+
+for(i in 1:nrow(results_fast)) {
+  #print(i)
+  # get the label we are translating from the row
+  old_label = results_fast$model[i]
+  # get the conversion to new label
+  
+  new_label = df[df$results_fast == old_label,"final_labels_list"]
+  results_fast$model_id[i] <- new_label
+}
+
+dataset_descriptive_features$original_label
+dataset_descriptive_features$id <- "nothing"
+
+for(i in 1:nrow(dataset_descriptive_features)) {
+  # get the label we are translating from the row
+  old_label = dataset_descriptive_features$original_label[i]
+  # get the conversion to new label
+  
+  new_label = df[df$dataset_descriptive_features_labels == old_label,"final_labels_list"]
+  dataset_descriptive_features$id[i] <- new_label
+}
+
+
+```
+
+
+
+```{r,echo=FALSE, results="hide"}
+
+# merge datasets
+
+results_albert$dataset <- NULL
+results_albert$model <- NULL
+results_bert$dataset <- NULL
+results_bert$model <- NULL
+results_fast$dataset <- NULL
+results_fast$model <- NULL
+results_fast$fasttext_model <- NULL
+
+
+results_albert$model_type <- "albert"
+results_bert$model_type <- "bert"
+results_fast$model_type <- "fasttext"
+
+
+
+
+data <- rbind(results_albert,results_bert)
+data <- rbind(data,results_fast)
+
+results_svm$dataset_category_train <- NULL
+results_svm$dataset_category_test <- NULL
+
+results_svm$model_type <- "svm"
+
+#results_svm <- results_svm[, c(3, 2, 1, 4)]
+names(results_svm)[1]<-paste("F1_macro") 
+data <- rbind(data,results_svm)
+
+
+```
+
+
+```{r,echo=FALSE, results="hide"}
+# problema 1, quanto maior o dataset mais palavras serao repetidas, e como estou a contar as palavras que sao diferentes isso influencia
+
+dataset_intra_vocabulary_features$perc_diff_voc_class1 <- dataset_intra_vocabulary_features$n_different_1 / dataset_intra_vocabulary_features$n_total_1
+dataset_intra_vocabulary_features$perc_diff_voc_class0 <- dataset_intra_vocabulary_features$n_different_0 / dataset_intra_vocabulary_features$n_total_0
+dataset_intra_vocabulary_features$perc_diff_voc_all <- dataset_intra_vocabulary_features$n_different_all / dataset_intra_vocabulary_features$n_total_all
+
+datasetclass_features <- merge(dataset_descriptive_features,dataset_intra_vocabulary_features, all.x=TRUE,by="id")
+colnames(datasetclass_features)
+
+datasetclass_features$new_voc_per_message_positive <- datasetclass_features$n_different_1 / datasetclass_features$train_total_positive
+datasetclass_features$new_voc_per_message_negative <- datasetclass_features$n_different_0 / (datasetclass_features$train_total_N - datasetclass_features$train_total_positive)
+datasetclass_features$new_voc_per_message_all <- datasetclass_features$n_different_all / datasetclass_features$train_total_N
+
+datasetclass_features$extra <- datasetclass_features$n_different_all / datasetclass_features$train_total_N
+
+cor(datasetclass_features[,c("train_total_N",
+                             "train_total_positive",
+                             "train_perc_positive",
+                             "perc_diff_voc_class1",
+                             "perc_diff_voc_class0",
+                             "perc_diff_voc_all",
+                             "new_voc_per_message_positive",
+                             "new_voc_per_message_negative",
+                             "new_voc_per_message_all")])
+
+cor(datasetclass_features[,c("train_total_N",
+                             "train_total_positive",
+                             "train_perc_positive",
+                             "perc_diff_voc_class1"
+                             )])
+
+datasetclass_features$dataset <- datasetclass_features$dataset.x
+datasetclass_features$dataset.x <- NULL
+datasetclass_features$dataset.y <- NULL
+datasetclass_features$perc_diff_voc_class0 <- NULL
+datasetclass_features$perc_diff_voc_all <- NULL
+datasetclass_features$new_voc_per_message <- NULL
+datasetclass_features$new_voc_per_message_positive <- NULL
+datasetclass_features$new_voc_per_message_negative <- NULL
+datasetclass_features$new_voc_per_message_all <- NULL
+datasetclass_features$obs <- NULL
+datasetclass_features$original_label <- NULL
+datasetclass_features$n_different_1 <- NULL
+datasetclass_features$n_different_0 <- NULL
+datasetclass_features$n_different_all <- NULL
+datasetclass_features$n_total_1 <- NULL
+datasetclass_features$n_total_0 <- NULL
+datasetclass_features$n_total_all <- NULL
+datasetclass_features$extra <- NULL
+colnames(datasetclass_features) <- paste("feat",colnames(datasetclass_features), sep = "_")
+```
+
+We found no correlation between the percentage of different vocabulary and the positive class size. Meaning that classes with more instances do not have a more or less homogenous vocabulary. perc_diff_voc_class1, train_total_positive  not correlated.
+
+
+```{r, echo=FALSE, results="hide"}
+#save_data <- data
+#data <- save_data
+```
+
+```{r, echo=FALSE, results="hide"}
+## add this into the model table
+
+# first merge with testing
+names(datasetclass_features)[1]<-paste("id")
+names(data)[2]<-paste("id")
+data <- merge(data,datasetclass_features, all.x=TRUE,by="id")
+colnames(data)
+names(data)[1]<-paste("testing_data")
+colnames(data) <- c(colnames(data)[1:4], paste("testing_data",colnames(data), sep = "_")[5:15])
+
+
+# second merge with training
+
+names(data)[3]<-paste("id")
+data <- merge(data,datasetclass_features, all.x=TRUE,by="id")
+colnames(data)
+names(data)[1]<-paste("training_data")
+
+colnames(data) <- c(colnames(data)[1:15], paste("training_data",colnames(data), sep = "_")[16:26])
+
+```
+
+```{r, echo=FALSE, results="hide"}
+save_data <- data
+temp <- datasets_comparison_vocabulary_features
+#data <- save_data
+```
+
+Merge now with the features from the comparison_vocabulary
+
+```{r, echo=FALSE, results="hide"}
+datasets_comparison_vocabulary_features$id <- paste(datasets_comparison_vocabulary_features$id_dataset1,
+                                                    datasets_comparison_vocabulary_features$id_dataset2, sep = "_")
+
+datasets_comparison_vocabulary_features$perc <- datasets_comparison_vocabulary_features$n_common_1/datasets_comparison_vocabulary_features$n_total_1
+
+datasets_comparison_vocabulary_features$dataset1 <- NULL
+datasets_comparison_vocabulary_features$dataset2 <- NULL
+datasets_comparison_vocabulary_features$n_common_1 <- NULL
+datasets_comparison_vocabulary_features$n_total_1 <- NULL
+datasets_comparison_vocabulary_features$n_common_0 <- NULL
+datasets_comparison_vocabulary_features$n_total_0 <- NULL
+datasets_comparison_vocabulary_features$n_common_all <- NULL
+datasets_comparison_vocabulary_features$n_total_all <- NULL
+datasets_comparison_vocabulary_features$id_dataset1 <- NULL
+datasets_comparison_vocabulary_features$id_dataset2 <- NULL
+
+data$id <- paste(data$testing_data,data$training_data, sep = "_")
+data <- merge(data,datasets_comparison_vocabulary_features, all=TRUE,by="id")
+
+names(data)[28]<- "perc_testing_present_training"
+
+# now the reverse
+data$id <- paste(data$training_data,data$testing_data, sep = "_")
+data <- merge(data,datasets_comparison_vocabulary_features, all=TRUE,by="id")
+
+names(data)[29]<- "perc_training_present_testing"
+```
+
+Make descriptives statistics for the variables to confirm that everything is ok, check if there are NA
+
+```{r, echo=FALSE, results="hide"}
+
+print("number of tests in each condition (all vs all x 3 models")
+table(data$training_data)
+table(data$testing_data)
+
+summary(data)
+
+
+
+```
+
+
+```{r}
+# erase stormfront sentence data
+#save_data <- data
+data <- data[data$training_data != "stormfront_sentence" & data$testing_data != "stormfront_sentence",]
+```
+
+
+Separate data that evaluates same dataset and class (intra), separate classes that share data, separate mere out-dataset scenario
+
+```{r, echo=FALSE, results="hide"}
+data_intra_dataset <- data[data$training_data == data$testing_data,]
+summary(data_intra_dataset)
+
+
+```
+
+```{r, echo=FALSE}
+#pdf(file = "model_comparison.pdf",   # The directory you want to save the file in
+#    width = 6, # The width of the plot in inches
+#    height = 4.4) # The height of the plot in inches
+
+library(plyr)
+data_intra_dataset$testing_data_feat_concept <- revalue(data_intra_dataset$testing_data_feat_concept, 
+                                                            c("aggressive hate speech"="aggr hs",
+                                                              "covert aggression"="cag",
+                                                              "overt aggression"="oag",
+                                                              "severe toxicity"="sev toxicity"))
+
+final_dataset_label <- c("waseem"="w&h",
+                         "davidson"="davidson",
+                         "amievalita"="ami",
+                         "stormfront"="stormfront",
+                         "TRAC"="trac",
+                         "hateval"="hateval",
+                         "offenseval"="offenseval",
+                         "toxkaggle"="kaggle",
+                         "Founta"="founta"
+                         )
+
+to_plot <- data_intra_dataset
+to_plot$training_data_feat_dataset <- revalue(to_plot$training_data_feat_dataset, 
+                                                            final_dataset_label)
+
+library(ggplot2)
+ggplot(to_plot,  aes(x=reorder(training_data_feat_dataset,-F1_macro), y=F1_macro, fill=model_type)) + 
+  geom_bar(stat="identity") + 
+  geom_text(aes(label=sprintf("%0.2f", round(F1_macro, digits = 2)), hjust = 1.02, angle = 90, ), color="#111111", vjust=0.5,size=3) +
+  facet_grid(model_type ~ testing_data_feat_concept,scales="free_x", space = "free") +
+  theme(axis.text.x = element_text(angle=90, vjust=0.4), 
+        axis.ticks.y = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.title = element_blank(), 
+        legend.position = "none",
+        strip.text.x = element_text(angle=90),
+        strip.text.y = element_text(angle=90)) 
+
+#dev.off()
+
+
+```
+
+```{r, echo=FALSE}
+
+#pdf(file = "model_comparison2.pdf",   # The directory you want to save the file in
+#    width = 6, # The width of the plot in inches
+#    height = 4.4) # The height of the plot in inches
+
+library(ggplot2)
+ggplot(to_plot,  aes(x=reorder(testing_data_feat_concept,-F1_macro), y=F1_macro, fill=model_type)) + 
+  geom_bar(stat="identity") + 
+  geom_text(aes(label=sprintf("%0.2f", round(F1_macro, digits = 2)), hjust = 1.02, angle = 90, ), color="#111111", vjust=0.5,size=3) +
+  facet_grid(model_type ~ training_data_feat_dataset,scales="free_x", space = "free") +
+  theme(axis.text.x = element_text(angle=90, vjust=0.4), 
+        axis.ticks.y = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.title = element_blank(), 
+        legend.position = "none",
+        strip.text.x = element_text(angle=90),
+        strip.text.y = element_text(angle=90))
+
+#dev.off()
+
+```
+
+
+
+Correlation between numeric variables
+
+```{r, echo=FALSE, results="hide"}
+library(genefilter)
+library(broom)
+library(tidyverse)
+
+```
+
+
+Try regression to explain models performance
+
+```{r, echo=FALSE}
+
+# compute number of messages per user
+data_intra_dataset$total_messages_per_user <- data_intra_dataset$testing_data_feat_train_total_N / data_intra_dataset$training_data_feat_total_users
+data_intra_dataset$positive_messages_users <- data_intra_dataset$testing_data_feat_train_total_positive/ data_intra_dataset$training_data_feat_positive_users_N
+
+data_to_keep <- data_intra_dataset %>% select(F1_macro,
+                                              testing_data_feat_sn,
+                                              testing_data_feat_dataset,
+                                              testing_data_feat_concept,
+                                              testing_data_feat_train_total_N,
+                                              testing_data_feat_perc_diff_voc_class1,
+                                              model_type,
+                                              total_messages_per_user,
+                                              positive_messages_users
+                                              )
+data_to_keep <- data_intra_dataset %>% select(F1_macro,
+                                              model_type
+)
+#model2 <- lm(F1_macro ~ .,
+#             data = data_to_keep)
+#summary(model2)
+
+#model.diag.metrics <- augment(model2)
+
+
+#print("second model without na")
+
+#model2 <- lm(F1_macro ~ .,
+#             data = data_to_keep %>% drop_na())
+#summary(model2)
+
+#model.diag.metrics <- augment(model2)
+
+```
+
+
+```{r, echo=FALSE, results="hide"}
+data_cross_dataset <- data[data$training_data_feat_dataset != data$testing_data_feat_dataset,]
+summary(data_cross_dataset)
+
+```
+
+# correlation between sizes and performance
+
+```{r}
+
+library(dplyr)
+
+table_correlations <- data_cross_dataset %>% 
+  select(training_data_feat_train_total_N, training_data_feat_train_total_positive, training_data_feat_train_perc_positive, 
+         testing_data_feat_test_tot_N,
+         F1_macro)
+
+table_correlations_cross <- cor(table_correlations, use = "complete.obs")
+
+
+data_in_dataset <- data[data$training_data_feat_dataset == data$testing_data_feat_dataset,]
+
+table_correlations <- data_in_dataset %>% 
+  select(training_data_feat_train_total_N, training_data_feat_train_total_positive, training_data_feat_train_perc_positive, 
+         testing_data_feat_test_tot_N,
+         F1_macro)
+
+table_correlations_in_dataset <- cor(table_correlations, use = "complete.obs")
+
+print(table_correlations_cross)
+print(table_correlations_in_dataset)
+
+```
+
+
+```{r, echo=FALSE}
+
+# compute number of messages per user
+data_cross_dataset$total_messages_per_user <- data_cross_dataset$testing_data_feat_train_total_N / data_cross_dataset$training_data_feat_total_users
+data_cross_dataset$positive_messages_users <- data_cross_dataset$testing_data_feat_train_total_positive/ data_cross_dataset$training_data_feat_positive_users_N
+
+data_to_keep <- data_cross_dataset %>% select(-id,
+                                              -training_data,
+                                              -testing_data
+                                              )
+
+
+```
+
+
+```{r}
+#prepare results table
+data_cross_dataset
+
+
+
+#revalue factors levels
+library(plyr)
+
+
+#merge tables
+data_cross_dataset_albert <- data_cross_dataset[data_cross_dataset$model_type == "albert",]
+data_cross_dataset_bert <- data_cross_dataset[data_cross_dataset$model_type == "bert",]
+data_cross_dataset_fast <- data_cross_dataset[data_cross_dataset$model_type == "fasttext",]
+data_cross_dataset_svm <- data_cross_dataset[data_cross_dataset$model_type == "svm",]
+
+
+temp <- merge(x = data_cross_dataset_albert[,c("id", 
+                                               "training_data",
+                                    "F1_macro",
+                                    "training_data_feat_dataset",
+                                    "training_data_feat_concept",
+                                    "testing_data_feat_dataset",
+                                    "testing_data_feat_concept"
+                                    )], 
+              y = data_cross_dataset_bert[,c("id","F1_macro")], 
+              by = "id", 
+              all = TRUE)
+
+names(temp)[3]<-paste("albert")
+names(temp)[8]<-paste("bert")
+
+temp <- merge(x = temp[,c("id", 
+                          "training_data",
+                                    "albert","bert",
+                                    "training_data_feat_dataset",
+                                    "training_data_feat_concept",
+                                    "testing_data_feat_dataset",
+                                    "testing_data_feat_concept"
+                                    )], 
+              y = data_cross_dataset_fast[,c("id","F1_macro")], 
+              by = "id", 
+              all = TRUE)
+
+names(temp)[9]<-paste("fastText")
+
+temp <- merge(x = temp[,c("id", 
+                          "training_data",
+                                    "albert","bert","fastText",
+                                    "training_data_feat_dataset",
+                                    "training_data_feat_concept",
+                                    "testing_data_feat_dataset",
+                                    "testing_data_feat_concept"
+                                    )], 
+              y = data_cross_dataset_svm[,c("id","F1_macro")], 
+              by = "id", 
+              all = TRUE)
+
+names(temp)[10]<-paste("svm")
+
+temp$id <- NULL
+
+# select and sort columns
+results_to_paper_table <- temp
+
+results_to_paper_table <- results_to_paper_table %>% select(training_data,
+                                                     training_data_feat_dataset,
+                                                     training_data_feat_concept,
+                                                     testing_data_feat_dataset,
+                                                     testing_data_feat_concept,
+                                                     svm,
+                                                     fastText,
+                                                     bert,
+                                                     albert
+                                              )
+
+results_to_paper_table$training_data_feat_dataset <- revalue(results_to_paper_table$training_data_feat_dataset, c("ami"="ami", 
+             "davidson"="david", 
+             "founta"="fount", 
+             "hateval"="hatev",
+             "offenseval"="offen", 
+             "stormfront"= "storm", 
+             "toxkaggle"="kaggl",
+             "trac"="trac",
+             "waseem"="w&h"))
+levels(results_to_paper_table$testing_data_feat_dataset)
+results_to_paper_table$testing_data_feat_dataset <- revalue(results_to_paper_table$testing_data_feat_dataset, c("ami"="ami", 
+             "davidson"="david", 
+             "founta"="fount", 
+             "hateval"="hatev",
+             "offenseval"="offen", 
+             "stormfront"= "storm", 
+             "toxkaggle"="kaggl",
+             "trac"="trac",
+             "waseem"="w&h"))
+
+levels(results_to_paper_table$training_data_feat_concept)
+
+results_to_paper_table$training_data_feat_concept <- revalue(results_to_paper_table$training_data_feat_concept, 
+                                                            c("aggression"="aggr",
+  "aggressive hate speech"="aghs",
+  "covert aggression"="cag",
+  "covert"="cag",
+  "hate speech"="hs",
+  "hate"="hs",
+  "hateful"="hs",
+  "post"="hs",
+  "identityhate"="hs",
+  "insult"="insu",
+  "obscene"="obsc",
+  "offense"="offe",
+  "offensive"="offe",
+  "overt aggression"="oag",
+  "overt"="oag",
+  "racism"="race",
+  "severe toxicity"="stox",
+  "severetoxicity"="stox",
+  "severetoxic"="stox",
+  "sexism"="sex",
+  "threat"="thre",
+  "toxicity"="tox",
+  "toxic"="tox",
+  "abusive"="abus")
+             )
+
+results_to_paper_table$testing_data_feat_concept <- revalue(results_to_paper_table$testing_data_feat_concept, 
+                                                           c("aggression"="aggr",
+  "aggressive hate speech"="aghs",
+  "covert aggression"="cag",
+  "covert"="cag",
+  "hate speech"="hs",
+  "hate"="hs",
+  "hateful"="hs",
+  "post"="hs",
+  "identityhate"="hs",
+  "insult"="insu",
+  "obscene"="obsc",
+  "offense"="offe",
+  "offensive"="offe",
+  "overt aggression"="oag",
+  "overt"="oag",
+  "racism"="race",
+  "severe toxicity"="stox",
+  "severetoxicity"="stox",
+  "severetoxic"="stox",
+  "sexism"="sex",
+  "threat"="thre",
+  "toxicity"="tox",
+  "toxic"="tox",
+  "abusive"="abus")
+             )
+
+#results_to_paper_table[results_to_paper_table$training_data == "hateval_aggression","training_data_feat_concept"] <-"aggrhs"
+#results_to_paper_table[results_to_paper_table$testing_data_feat_dataset == "hatev" & results_to_paper_table$testing_data_feat_concept == "aggr","testing_data_feat_concept"] <-"aggrhs"
+
+results_to_paper_table_complete <- results_to_paper_table
+```
+
+```{r}
+results_to_paper_table <- results_to_paper_table_complete
+
+
+results_to_paper_table$svm[is.na(results_to_paper_table$svm)] <- 0
+
+# now that the labels are normalized subselect values
+
+results_to_paper_table <- results_to_paper_table[results_to_paper_table$albert > 0.6 | 
+                                                   results_to_paper_table$fastText > 0.6 | 
+                                                   results_to_paper_table$bert > 0.6 | 
+                                                   results_to_paper_table$svm > 0.6,]
+
+# sort
+results_to_paper_table <- results_to_paper_table %>% arrange(training_data, -bert)
+
+write.csv(results_to_paper_table, "generalization_F1_results.csv")
+
+```
+
+```{r}
+
+check_svm <- results_to_paper_table[results_to_paper_table$svm >= 0.7 & results_to_paper_table$bert < 0.7 & results_to_paper_table$albert < 0.7 & results_to_paper_table$fasttext < 0.7,]
+
+check_svm <- results_to_paper_table[results_to_paper_table$svm > results_to_paper_table$bert &
+                                      results_to_paper_table$svm > results_to_paper_table$albert &
+                                      results_to_paper_table$svm > results_to_paper_table$fastText,]
+
+```
+
+- performance drops can be observed when going from a large training to a small test (swamy)
+
+
+```{r}
+# keep things for the albert model
+
+data_cross_dataset$proportion_train_test_sets <- log(data_cross_dataset$training_data_feat_train_total_N /  data_cross_dataset$testing_data_feat_test_tot_N )
+
+```
+
+
+the same normalizing
+
+```{r}
+# keep things for the albert model
+
+data_cross_dataset$same_sn <- as.numeric(data_cross_dataset$training_data_feat_sn == data_cross_dataset$testing_data_feat_sn)
+data_cross_dataset$same_concept <- as.numeric(data_cross_dataset$training_data_feat_concept == data_cross_dataset$testing_data_feat_concept)
+
+data_to_keep <- data_cross_dataset %>% select(F1_macro,
+                                                     training_data_feat_train_total_N,
+                                                     testing_data_feat_test_tot_N,
+                                                     proportion_train_test_sets,
+                                                     model_type,
+                                                     training_data_feat_concept,
+                                                     training_data_feat_dataset,
+                                                     testing_data_feat_concept,
+                                                     testing_data_feat_dataset,
+                                                     perc_training_present_testing,
+                                                     perc_testing_present_training,
+                                                     training_data_feat_train_perc_positive,
+                                                     same_sn,
+                                                     same_concept
+                                              )
+
+
+
+library(psycho)
+library(tidyverse)
+
+
+# data z score
+# 1 first convert everything to numeric
+library("dplyr")
+library(fastDummies)
+
+model_type_dummies <- as.data.frame(data_to_keep$model_type %>% dummy_cols())
+testing_data_feat_dataset_dummies <- as.data.frame(data_to_keep$testing_data_feat_dataset %>% dummy_cols())
+testing_data_feat_concept_dummies  <- as.data.frame(data_to_keep$testing_data_feat_concept %>% dummy_cols())
+training_data_feat_dataset_dummies  <- as.data.frame(data_to_keep$training_data_feat_dataset %>% dummy_cols())
+training_data_feat_concept_dummies  <- as.data.frame(data_to_keep$training_data_feat_concept %>% dummy_cols())
+model_type_dummies$.data <- NULL
+testing_data_feat_dataset_dummies$.data <- NULL
+testing_data_feat_concept_dummies$.data <- NULL
+training_data_feat_dataset_dummies$.data <- NULL
+training_data_feat_concept_dummies$.data <- NULL
+colnames(model_type_dummies) <- paste0("model_type", colnames(model_type_dummies))
+colnames(testing_data_feat_dataset_dummies) <- paste0("test_dataset", colnames(testing_data_feat_dataset_dummies))
+colnames(testing_data_feat_concept_dummies) <- paste0("test_concept", colnames(testing_data_feat_concept_dummies))
+colnames(training_data_feat_dataset_dummies) <- paste0("train_dataset", colnames(training_data_feat_dataset_dummies))
+colnames(training_data_feat_concept_dummies) <- paste0("train_concept", colnames(training_data_feat_concept_dummies))
+
+# 2 compute the z score
+data_to_keep_numeric <- select_if(data_to_keep, is.numeric)
+
+res <- cbind(data_to_keep_numeric[,1:4],model_type_dummies)
+res <- cbind(res,testing_data_feat_dataset_dummies)
+res <- cbind(res,testing_data_feat_concept_dummies)
+res <- cbind(res,training_data_feat_dataset_dummies)
+res <- cbind(res,training_data_feat_concept_dummies)
+res <- cbind(res,data_to_keep_numeric[,5:9])
+zscore<-function(x){
+  return (x-mean(x))/sd(x)
+}
+res <- as.data.frame(apply(res,2,zscore))
+
+
+
+write.csv(coefs_df, "regression_standardized.csv")
+
+
+
+```
+
+
+- better models generalize better?
+
+
+```{r}
+#data_cross_dataset_no_bert <- save_data
+#data_to_keep <- save_data
+save_data <- data_cross_dataset
+temp <- data_intra_dataset %>% select(training_data, model_type, "F1_macro")
+temp$F1_macro_original <- temp$F1_macro
+temp$F1_macro <- NULL
+temp$id <- paste(temp$training_data, temp$model_type, sep="_")
+temp$model_type <- NULL
+temp$training_data <- NULL
+data_cross_dataset$id <- paste(data_cross_dataset$training_data, data_cross_dataset$model_type, sep="_")
+data_cross_dataset <- merge(data_cross_dataset,temp,all.x=TRUE,by="id")
+```
+
+FINAL MODEL
+
+```{r}
+# keep things for the albert model
+
+data_to_keep <- data_cross_dataset %>% select(F1_macro,
+                                                     training_data_feat_train_total_N,
+                                                     testing_data_feat_test_tot_N,
+                                                     proportion_train_test_sets,
+                                                     model_type,
+                                                     training_data_feat_concept,
+                                                     training_data_feat_dataset,
+                                                     testing_data_feat_concept,
+                                                     testing_data_feat_dataset,
+                                                     perc_training_present_testing,
+                                                     perc_testing_present_training,
+                                                     training_data_feat_train_perc_positive,
+                                                     same_sn,
+                                                     same_concept,
+                                                     F1_macro_original
+                                                     
+                                              )
+
+
+
+
+
+
+
+library(tidyverse)
+library(dplyr)
+library(fastDummies)
+
+model_type_dummies <- as.data.frame(data_to_keep$model_type %>% dummy_cols())
+testing_data_feat_dataset_dummies <- as.data.frame(data_to_keep$testing_data_feat_dataset %>% dummy_cols())
+testing_data_feat_concept_dummies  <- as.data.frame(data_to_keep$testing_data_feat_concept %>% dummy_cols())
+training_data_feat_dataset_dummies  <- as.data.frame(data_to_keep$training_data_feat_dataset %>% dummy_cols())
+training_data_feat_concept_dummies  <- as.data.frame(data_to_keep$training_data_feat_concept %>% dummy_cols())
+model_type_dummies$.data <- NULL
+testing_data_feat_dataset_dummies$.data <- NULL
+testing_data_feat_concept_dummies$.data <- NULL
+training_data_feat_dataset_dummies$.data <- NULL
+training_data_feat_concept_dummies$.data <- NULL
+colnames(model_type_dummies) <- paste0("model_type", colnames(model_type_dummies))
+colnames(testing_data_feat_dataset_dummies) <- paste0("test_dataset", colnames(testing_data_feat_dataset_dummies))
+colnames(testing_data_feat_concept_dummies) <- paste0("test_concept", colnames(testing_data_feat_concept_dummies))
+colnames(training_data_feat_dataset_dummies) <- paste0("train_dataset", colnames(training_data_feat_dataset_dummies))
+colnames(training_data_feat_concept_dummies) <- paste0("train_concept", colnames(training_data_feat_concept_dummies))
+model_type_dummies=model_type_dummies[,order(ncol(model_type_dummies):1)]
+testing_data_feat_dataset_dummies=testing_data_feat_dataset_dummies[,order(ncol(testing_data_feat_dataset_dummies):1)]
+testing_data_feat_concept_dummies=testing_data_feat_concept_dummies[,order(ncol(testing_data_feat_concept_dummies):1)]
+training_data_feat_dataset_dummies=training_data_feat_dataset_dummies[,order(ncol(training_data_feat_dataset_dummies):1)]
+training_data_feat_concept_dummies=training_data_feat_concept_dummies[,order(ncol(training_data_feat_concept_dummies):1)]
+# 2 compute the z score
+data_to_keep_numeric <- select_if(data_to_keep, is.numeric)
+
+res <- cbind(data_to_keep_numeric[,1:4],model_type_dummies)
+res <- cbind(res,training_data_feat_dataset_dummies)
+res <- cbind(res,training_data_feat_concept_dummies)
+res <- cbind(res,testing_data_feat_dataset_dummies)
+res <- cbind(res,testing_data_feat_concept_dummies)
+res <- cbind(res,data_to_keep_numeric[,5:10])
+zscore<-function(x){
+  return (x-mean(x))/sd(x)
+}
+res <- as.data.frame(apply(res,2,zscore))
+
+res$F1_macro <- data_to_keep$F1_macro
+#write.csv(res, "2020-10-14_dataset_ready_to_analyse.csv", row.names = FALSE)
+res$F1_macro_binary <- res$F1_macro >= 0.7
+
+
+
+```
+
+
+
+###############
+Random Forest Data
+##############
+
+```{r}
+# keep things for the albert model
+
+data_to_keep <- data_cross_dataset %>% select(F1_macro,
+                                                     training_data_feat_train_total_N,
+                                                     testing_data_feat_test_tot_N,
+                                                     proportion_train_test_sets,
+                                                     model_type,
+                                                     training_data_feat_concept,
+                                                     training_data_feat_dataset,
+                                                     training_data_feat_sn,
+                                                     testing_data_feat_concept,
+                                                     testing_data_feat_dataset,
+                                                     testing_data_feat_sn,
+                                                     perc_training_present_testing,
+                                                     perc_testing_present_training,
+                                                     training_data_feat_train_perc_positive,
+                                                     same_sn,
+                                                     same_concept,
+                                                     F1_macro_original
+
+                                              )
+
+
+
+
+
+
+
+library(tidyverse)
+library(dplyr)
+library(fastDummies)
+
+
+model_type_dummies <- as.data.frame(data_to_keep$model_type %>% dummy_cols())
+testing_data_feat_dataset_dummies <- as.data.frame(data_to_keep$testing_data_feat_dataset %>% dummy_cols())
+testing_data_feat_concept_dummies  <- as.data.frame(data_to_keep$testing_data_feat_concept %>% dummy_cols())
+testing_data_feat_sn_dummies <- as.data.frame(data_to_keep$testing_data_feat_sn %>% dummy_cols())
+training_data_feat_dataset_dummies  <- as.data.frame(data_to_keep$training_data_feat_dataset %>% dummy_cols())
+training_data_feat_concept_dummies  <- as.data.frame(data_to_keep$training_data_feat_concept %>% dummy_cols())
+training_data_feat_sn_dummies <- as.data.frame(data_to_keep$training_data_feat_sn %>% dummy_cols())
+model_type_dummies$.data <- NULL
+testing_data_feat_dataset_dummies$.data <- NULL
+testing_data_feat_concept_dummies$.data <- NULL
+testing_data_feat_sn_dummies$.data <- NULL
+training_data_feat_dataset_dummies$.data <- NULL
+training_data_feat_concept_dummies$.data <- NULL
+training_data_feat_sn_dummies$.data <- NULL
+colnames(model_type_dummies) <- paste0("model_type", colnames(model_type_dummies))
+colnames(testing_data_feat_dataset_dummies) <- paste0("test_dataset", colnames(testing_data_feat_dataset_dummies))
+colnames(testing_data_feat_concept_dummies) <- paste0("test_concept", colnames(testing_data_feat_concept_dummies))
+colnames(training_data_feat_dataset_dummies) <- paste0("train_dataset", colnames(training_data_feat_dataset_dummies))
+colnames(training_data_feat_concept_dummies) <- paste0("train_concept", colnames(training_data_feat_concept_dummies))
+colnames(training_data_feat_sn_dummies) <- paste0("train_sn", colnames(training_data_feat_sn_dummies))
+colnames(testing_data_feat_sn_dummies) <- paste0("test_sn", colnames(testing_data_feat_sn_dummies))
+model_type_dummies=model_type_dummies[,order(ncol(model_type_dummies):1)]
+testing_data_feat_dataset_dummies=testing_data_feat_dataset_dummies[,order(ncol(testing_data_feat_dataset_dummies):1)]
+testing_data_feat_concept_dummies=testing_data_feat_concept_dummies[,order(ncol(testing_data_feat_concept_dummies):1)]
+training_data_feat_dataset_dummies=training_data_feat_dataset_dummies[,order(ncol(training_data_feat_dataset_dummies):1)]
+training_data_feat_concept_dummies=training_data_feat_concept_dummies[,order(ncol(training_data_feat_concept_dummies):1)]
+testing_data_feat_sn_dummies=testing_data_feat_sn_dummies[,order(ncol(testing_data_feat_sn_dummies):1)]
+training_data_feat_sn_dummies=training_data_feat_sn_dummies[,order(ncol(training_data_feat_sn_dummies):1)]
+
+# 2 compute the z score
+data_to_keep_numeric <- select_if(data_to_keep, is.numeric)
+
+res <- cbind(data_to_keep_numeric[,1:4],model_type_dummies)
+res <- cbind(res,training_data_feat_dataset_dummies)
+res <- cbind(res,training_data_feat_concept_dummies)
+res <- cbind(res,testing_data_feat_dataset_dummies)
+res <- cbind(res,testing_data_feat_concept_dummies)
+res <- cbind(res,testing_data_feat_sn_dummies)
+res <- cbind(res,training_data_feat_sn_dummies)
+res <- cbind(res,data_to_keep_numeric[,5:10])
+
+res$F1_macro <- data_to_keep$F1_macro
+write.csv(res, "2020-10-21_dataset_ready_to_analyse.csv", row.names = FALSE)
+sum(res$F1_macro >= 0.7)
+statistics <- data_to_keep
+statistics$F1_macro_binary <- statistics$F1_macro >= 0.7
+
+
+feature_importance <- read.csv("feature_importance.csv")
+feature_importance$features <- as.factor(feature_importance$features)
+feature_importance$features <- revalue(feature_importance$features,
+                             c("(Intercept)"="interaction",
+                               "test_concept.data_aggressive hate speech"="test - concept - aggr hate speech",
+                               "test_concept.data_covert aggression"="test - concept - covert aggr",
+                               "train_concept.data_covert aggression"="train - concept - covert aggr",
+                               "test_concept.data_hate speech"="test - concept - hate speech",
+                               "train_concept.data_hate speech"="train - concept - hate speech",
+                               "test_concept.data_severe toxicity"="test - concept - severe tox",
+                               "train_concept.data_severe toxicity"="train - concept - severe tox",
+                               "train_concept.data_aggressive hate speech"="train - concept - aggr hate speech",
+                               "F1_macro_original"="original F1",
+                               "model_type.data_albert"="model - albert",
+                               "model_type.data_bert"="model - bert",
+                               "model_type.data_fasttext"="model - fasttext",
+                               "perc_testing_present_training"="vocabulary testing present training",
+                               "perc_training_present_testing"="vocabulary training present testing",
+                               "proportion_train_test_sets"="train test set proportions",
+                               "same_concept"="is same concept",
+                               "same_sn"="is same social network",
+                               "test_concept.data_abusive"="test - concept - abuse",
+                               "test_concept.data_toxicity"="test - concept - toxicity",
+                               "train_concept.data_toxicity"="train - concept - toxicity",
+                               "test_concept.data_aggression"="test - concept - aggression",
+                               "test_concept.data_insult"="test - concept - insult",
+                               "test_concept.data_obscene"="test - concept - obscene",
+                               "test_concept.data_offense"="test - concept - offense",
+                               "test_concept.data_racism"="test - concept - racism",
+                               "test_concept.data_sexism"="test - concept - sexism",
+                               "test_concept.data_threat"="test - concept - threat",
+                               "test_dataset.data_ami"="test - dataset - ami",
+                               "test_dataset.data_davidson"="test - dataset - davidson",
+                               "test_dataset.data_founta"="test - dataset - founta",
+                               "test_dataset.data_waseem"="test - dataset - waseem",
+                               "test_dataset.data_trac"="test - dataset - trac",
+                               "train_dataset.data_trac"="train - dataset - trac",
+                               "test_dataset.data_hateval"="test - dataset - hateval",
+                               "test_dataset.data_offenseval"="test - dataset - offenseval",
+                               "test_dataset.data_stormfront"="test - dataset - stormfront",
+                               "test_dataset.data_toxkaggle"="test - dataset - toxkaggle",
+                               "train_concept.data_abusive"="train - concept - abuse",
+                               "train_concept.data_overt aggression"="train - concept - overt aggr",
+                               "test_concept.data_overt aggression"="test - concept - overt aggr",
+                               "train_concept.data_aggression"="train - concept - agression",
+                               "train_concept.data_insult"="train - concept - insult",
+                               "train_concept.data_obscene"="train - concept - obscene",
+                               "train_concept.data_offense"="train - concept - offense",
+                               "train_concept.data_racism"="train - concept - racism",
+                               "train_concept.data_sexism"="train - concept - sexism",
+                               "train_concept.data_threat"="train - concept - threat",
+                               "train_dataset.data_ami"="train - dataset - ami",
+                               "train_dataset.data_davidson"="train - dataset - davidson",
+                               "train_dataset.data_founta"="train - dataset - founta",
+                               "train_dataset.data_waseem"="train - dataset - waseem",
+                               "train_dataset.data_hateval"="train - dataset - hateval",
+                               "train_dataset.data_offenseval"="train - dataset - offenseval",
+                               "train_dataset.data_stormfront"="train - dataset - stormfront",
+                               "train_dataset.data_toxkaggle"="train - dataset - toxkaggle",
+                               "testing_data_feat_test_tot_N"="testing dataset size",
+                               "training_data_feat_train_perc_positive"="percentage positive class",
+                               "training_data_feat_train_total_N"="training dataset size",
+                               "test_sn.data_wikipedia_talks" = "test - social net - wikipedia",
+                                "train_sn.data_wikipedia_talks" = "train - social net - wikipedia",
+                               "test_sn.data_facebook" = "test - social net - facebook",
+                                "train_sn.data_facebook" = "train - social net - facebook",
+                               "test_sn.data_twitter" = "test - social net - twitter",
+                                "train_sn.data_twitter" = "train - social net - twitter",
+                               "test_sn.data_stormfront" = "test - social net - stormfront",
+                                "train_sn.data_stormfront" = "train - social net - stormfront"
+
+                               )
+                             )
+
+write.csv(feature_importance, "feature_importance_labelsok.csv", row.names = FALSE)
+
+```
+
+
