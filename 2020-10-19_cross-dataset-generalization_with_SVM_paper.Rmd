@@ -9,13 +9,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Generalization Results Analysis
 
-In this script we present the analysis of performance for different abusive speech related datasets.
+In this script we present the data preparation and plot construction for our paper.
 
 ```{r,echo=FALSE}
 
 library(ggplot2)
 ```
 
+Dataset reading: the used data is on the "data" folder.
 
 ```{r, echo=FALSE, results="hide"}
 
@@ -60,6 +61,7 @@ results_svm <- rbind(results_svm,results_svm_intra)
 
 ```
 
+Label conversion between the different folders (these experiments were done in different phases and this generated a mess with labels :)
 
 ```{r, echo=FALSE, results="hide"}
 
@@ -339,7 +341,7 @@ for(i in 1:nrow(dataset_descriptive_features)) {
 
 ```
 
-
+data preparation
 
 ```{r,echo=FALSE, results="hide"}
 
@@ -378,7 +380,7 @@ data <- rbind(data,results_svm)
 
 
 ```{r,echo=FALSE, results="hide"}
-# problema 1, quanto maior o dataset mais palavras serao repetidas, e como estou a contar as palavras que sao diferentes isso influencia
+# problem 1, the biggest the dataset more words will be present, we take total words into account by dividing per this number
 
 dataset_intra_vocabulary_features$perc_diff_voc_class1 <- dataset_intra_vocabulary_features$n_different_1 / dataset_intra_vocabulary_features$n_total_1
 dataset_intra_vocabulary_features$perc_diff_voc_class0 <- dataset_intra_vocabulary_features$n_different_0 / dataset_intra_vocabulary_features$n_total_0
@@ -630,20 +632,6 @@ data_to_keep <- data_intra_dataset %>% select(F1_macro,
 data_to_keep <- data_intra_dataset %>% select(F1_macro,
                                               model_type
 )
-#model2 <- lm(F1_macro ~ .,
-#             data = data_to_keep)
-#summary(model2)
-
-#model.diag.metrics <- augment(model2)
-
-
-#print("second model without na")
-
-#model2 <- lm(F1_macro ~ .,
-#             data = data_to_keep %>% drop_na())
-#summary(model2)
-
-#model.diag.metrics <- augment(model2)
 
 ```
 
