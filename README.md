@@ -12,4 +12,4 @@ The code is organized as follows:
 
 data repository - The data that we achieved by following the code in the Experiment 2 of our pipeline. It contains the data about every SVM, fastText, BERT and ALBERT models we have from our previous experiments; it contains also dataset descriptives.
 
-random_forest_analysis.py  - It is a script for running a Random Forest model on our dataset.
+2020-10-19_cross-dataset-generalization_with_SVM_paper.Rmd  - It is a R script for dataset and plot preparation
